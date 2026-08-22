@@ -3,38 +3,18 @@ import random
 pygame.init()
 
 
-screen = pygame.display.set_mode((640, 480))
+screen = pygame.display.set_mode((1280, 640))
 
 clock = pygame.time.Clock()
 running = True
 game_over = False
 
 
-
 TILE_SIZE = 32
-player_x = 3  #3 tiles over , 3 tiles down
-player_y = 3
 player_hp = 20
 
-enemy_x = 7
-enemy_y = 3
 enemy_hp = 10
 enemy_alive = True
-
-
-
-
-LEVEL_MAP = [                    # wall = 1, floor = 0
-    "1111111111",
-    "1000000001",
-    "1011111001",
-    "1000000001",
-    "1111111111",
-]
-
-def is_wall(grid_x, grid_y):
-    row = LEVEL_MAP[grid_y]
-    return row[grid_x] == "1"
 
 
 class Rect:
@@ -46,7 +26,6 @@ class Rect:
 
 
 def split_rect(rect):
-    # decide split direction randomly
     split_horizontal = random.choice([True, False])
 
     if split_horizontal:
@@ -60,10 +39,10 @@ def split_rect(rect):
         right = Rect(rect.x + split_point, rect.y, rect.width - split_point, rect.height)
         return left, right
 
+
 def split_recursive(rect, depth):
     if depth == 0 or rect.width < 6 or rect.height < 6:
-        return [rect]  # too small or done splitting — this is a final leaf
-
+        return [rect]
     piece_a, piece_b = split_rect(rect)
     return split_recursive(piece_a, depth - 1) + split_recursive(piece_b, depth - 1)
 
@@ -77,14 +56,30 @@ def rect_to_room(rect):
     return Rect(room_x, room_y, room_width, room_height)
 
 
+def room_center(room):
+    center_x = room.x + room.width // 2
+    center_y = room.y + room.height // 2
+    return center_x, center_y
+
+
+def carve_corridor(grid, x1, y1, x2, y2):
+    x_start = min(x1, x2)
+    x_end = max(x1, x2)
+    for x in range(x_start, x_end + 1):
+        grid[y1][x] = "0"
+
+    y_start = min(y1, y2)
+    y_end = max(y1, y2)
+    for y in range(y_start, y_end + 1):
+        grid[y][x2] = "0"
+
+
 def rooms_to_map(rooms, map_width, map_height):
-    # start with a grid that's entirely walls
     grid = []
     for y in range(map_height):
         row = ["1"] * map_width
         grid.append(row)
 
-    # carve out a floor for each room
     for room in rooms:
         for y in range(room.y, room.y + room.height):
             for x in range(room.x, room.x + room.width):
@@ -95,49 +90,37 @@ def rooms_to_map(rooms, map_width, map_height):
         x2, y2 = room_center(rooms[i + 1])
         carve_corridor(grid, x1, y1, x2, y2)
 
-
-    # convert each row (a list of characters) into a string
     result = []
     for row in grid:
         result.append("".join(row))
     return result
 
 
-def room_center(room):
-    center_x = room.x + room.width // 2
-    center_y = room.y + room.height // 2
-    return center_x, center_y
+MAP_WIDTH = 40
+MAP_HEIGHT = 20
 
-
-def carve_corridor(grid, x1, y1, x2, y2):
-    # horizontal segment first
-    x_start = min(x1, x2)
-    x_end = max(x1, x2)
-    for x in range(x_start, x_end + 1):
-        grid[y1][x] = "0"
-
-    # then vertical segment
-    y_start = min(y1, y2)
-    y_end = max(y1, y2)
-    for y in range(y_start, y_end + 1):
-        grid[y][x2] = "0"
-
-
-#testing 
-
-#testing
-
-whole_map = Rect(0, 0, 40, 20)
+whole_map = Rect(0, 0, MAP_WIDTH, MAP_HEIGHT)
 pieces = split_recursive(whole_map, 3)
 actual_rooms = []
 for piece in pieces:
     actual_rooms.append(rect_to_room(piece))
 
-generated_map = rooms_to_map(actual_rooms, 40, 20)
-for row in generated_map:
-    print(row)
+LEVEL_MAP = rooms_to_map(actual_rooms, MAP_WIDTH, MAP_HEIGHT)
 
-    
+
+def is_wall(grid_x, grid_y):
+    if grid_y < 0 or grid_y >= len(LEVEL_MAP):
+        return True
+    row = LEVEL_MAP[grid_y]
+    if grid_x < 0 or grid_x >= len(row):
+        return True
+    return row[grid_x] == "1"
+
+
+player_x, player_y = room_center(actual_rooms[0])
+enemy_x, enemy_y = room_center(actual_rooms[-1])
+
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -184,7 +167,6 @@ while running:
                 elif not is_wall(new_x, new_y):
                     player_y = new_y
 
-            # enemy takes its turn right after the player moves/attacks
             if enemy_alive:
                 dx = player_x - enemy_x
                 dy = player_y - enemy_y
@@ -203,16 +185,15 @@ while running:
                             enemy_y += step
 
     screen.fill((30, 30, 40))
-    for grid_y, row in enumerate(LEVEL_MAP):  
+    for grid_y, row in enumerate(LEVEL_MAP):
         for grid_x, cell in enumerate(row):
             if cell == "1":
                 color = (60, 60, 70)
             else:
                 color = (35, 35, 45)
-
             pygame.draw.rect(screen, color, (TILE_SIZE * grid_x, TILE_SIZE * grid_y, TILE_SIZE, TILE_SIZE))
 
-    pygame.draw.rect(screen, (80, 200, 255), (TILE_SIZE * player_x,TILE_SIZE * player_y , TILE_SIZE, TILE_SIZE))
+    pygame.draw.rect(screen, (80, 200, 255), (TILE_SIZE * player_x, TILE_SIZE * player_y, TILE_SIZE, TILE_SIZE))
     if enemy_alive:
         pygame.draw.rect(screen, (220, 60, 60), (TILE_SIZE * enemy_x, TILE_SIZE * enemy_y, TILE_SIZE, TILE_SIZE))
 
