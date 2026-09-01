@@ -77,7 +77,7 @@ generated rooms.
 ## Status log
 - [x] Phase 1 — Core loop
 - [x] Phase 2 — Procedural generation
-- [ ] Phase 3 — Enemy AI / pathfinding
+- [X] Phase 3 — Enemy AI / pathfinding
 - [ ] Phase 4 — Persistence
 - [ ] Phase 5 — Backend API
 - [ ] Phase 6 — Web frontend

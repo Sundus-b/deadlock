@@ -2,16 +2,16 @@
 ![gameplay screenshot](screenshots/dungeon.png)
 
 A roguelike dungeon crawler built from scratch in Python — procedurally
-generated dungeons, grid-based combat, and simple enemy AI, with more
-systems (real pathfinding, persistence, a backend, and a web leaderboard)
-planned as the project grows.
+generated dungeons, grid-based combat, A* enemy pathfinding, with more
+systems (persistence, a backend, and a web leaderboard) planned as the
+project grows.
 
 ## Features
 - Grid-based movement and bump-to-attack combat
 - Procedurally generated dungeons using recursive Binary Space
   Partitioning (BSP) — a new layout every run
 - Rooms connected by corridors, carved automatically
-- Simple enemy AI (chases and attacks when adjacent)
+- Enemy AI with A* pathfinding (navigates around walls and corners)
 - Player/enemy HP, death, and a basic game-over state
 
 ## Tech stack
