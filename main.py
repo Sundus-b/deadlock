@@ -1,5 +1,7 @@
 import pygame
 import random
+import heapq
+
 pygame.init()
 
 
@@ -117,6 +119,106 @@ def is_wall(grid_x, grid_y):
     return row[grid_x] == "1"
 
 
+def get_neighbors(x, y):
+    candidates = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    result = []
+    for nx, ny in candidates:
+        if not is_wall(nx, ny):
+            result.append((nx, ny))
+    return result
+
+import heapq
+
+def get_neighbors(x, y):
+    candidates = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    result = []
+    for nx, ny in candidates:
+        if not is_wall(nx, ny):
+            result.append((nx, ny))
+    return result
+
+
+import heapq
+
+def get_neighbors(x, y):
+    candidates = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    result = []
+    for nx, ny in candidates:
+        if not is_wall(nx, ny):
+            result.append((nx, ny))
+    return result
+
+
+def heuristic(x1, y1, x2, y2):
+    return abs(x1 - x2) + abs(y1 - y2)  # Manhattan distance
+
+
+def find_path(start_x, start_y, goal_x, goal_y):
+    start = (start_x, start_y)
+    goal = (goal_x, goal_y)
+
+    open_heap = [(0, start)]          # (f_score, position)
+    came_from = {}                     # tile -> tile we reached it from
+    g_score = {start: 0}               # cost from start to each tile
+
+    while open_heap:
+        _, current = heapq.heappop(open_heap)
+
+        if current == goal:
+            # reconstruct path by walking backwards through came_from
+            path = [current]
+            while current in came_from:
+                current = came_from[current]
+                path.append(current)
+            path.reverse()
+            return path  # includes start and goal
+
+        for neighbor in get_neighbors(current[0], current[1]):
+            tentative_g = g_score[current] + 1
+            if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                g_score[neighbor] = tentative_g
+                f_score = tentative_g + heuristic(neighbor[0], neighbor[1], goal_x, goal_y)
+                came_from[neighbor] = current
+                heapq.heappush(open_heap, (f_score, neighbor))
+
+    return None  # no path exists
+
+
+def heuristic(x1, y1, x2, y2):
+    return abs(x1 - x2) + abs(y1 - y2)  # Manhattan distance
+
+
+def find_path(start_x, start_y, goal_x, goal_y):
+    start = (start_x, start_y)
+    goal = (goal_x, goal_y)
+
+    open_heap = [(0, start)]          # (f_score, position)
+    came_from = {}                     # tile -> tile we reached it from
+    g_score = {start: 0}               # cost from start to each tile
+
+    while open_heap:
+        _, current = heapq.heappop(open_heap)
+
+        if current == goal:
+            # reconstruct path by walking backwards through came_from
+            path = [current]
+            while current in came_from:
+                current = came_from[current]
+                path.append(current)
+            path.reverse()
+            return path  # includes start and goal
+
+        for neighbor in get_neighbors(current[0], current[1]):
+            tentative_g = g_score[current] + 1
+            if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                g_score[neighbor] = tentative_g
+                f_score = tentative_g + heuristic(neighbor[0], neighbor[1], goal_x, goal_y)
+                came_from[neighbor] = current
+                heapq.heappush(open_heap, (f_score, neighbor))
+
+    return None  # no path exists
+
+
 player_x, player_y = room_center(actual_rooms[0])
 enemy_x, enemy_y = room_center(actual_rooms[-1])
 
@@ -175,15 +277,13 @@ while running:
                     if player_hp <= 0:
                         game_over = True
                 else:
-                    if abs(dx) > abs(dy):
-                        step = 1 if dx > 0 else -1
-                        if not is_wall(enemy_x + step, enemy_y):
-                            enemy_x += step
-                    elif dy != 0:
-                        step = 1 if dy > 0 else -1
-                        if not is_wall(enemy_x, enemy_y + step):
-                            enemy_y += step
+                    path = find_path(enemy_x, enemy_y, player_x, player_y)
+                    if path and len(path) > 1:
+                        enemy_x, enemy_y = path[1]
 
+
+
+              
     screen.fill((30, 30, 40))
     for grid_y, row in enumerate(LEVEL_MAP):
         for grid_x, cell in enumerate(row):
