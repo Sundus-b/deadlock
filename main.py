@@ -1,6 +1,8 @@
 import pygame
 import random
 import heapq
+import sqlite3
+import datetime
 
 pygame.init()
 
@@ -10,6 +12,8 @@ screen = pygame.display.set_mode((1280, 640))
 clock = pygame.time.Clock()
 running = True
 game_over = False
+won = False  # True if the game ended by killing the enemy, False if the player died
+run_saved = False  # so we only save the run once, not every frame after death
 
 
 TILE_SIZE = 32
@@ -17,6 +21,7 @@ player_hp = 20
 
 enemy_hp = 10
 enemy_alive = True
+enemies_killed = 0
 
 
 class Rect:
@@ -127,51 +132,29 @@ def get_neighbors(x, y):
             result.append((nx, ny))
     return result
 
-import heapq
-
-def get_neighbors(x, y):
-    candidates = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
-    result = []
-    for nx, ny in candidates:
-        if not is_wall(nx, ny):
-            result.append((nx, ny))
-    return result
-
-
-import heapq
-
-def get_neighbors(x, y):
-    candidates = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
-    result = []
-    for nx, ny in candidates:
-        if not is_wall(nx, ny):
-            result.append((nx, ny))
-    return result
-
 
 def heuristic(x1, y1, x2, y2):
-    return abs(x1 - x2) + abs(y1 - y2)  # Manhattan distance
+    return abs(x1 - x2) + abs(y1 - y2)
 
 
 def find_path(start_x, start_y, goal_x, goal_y):
     start = (start_x, start_y)
     goal = (goal_x, goal_y)
 
-    open_heap = [(0, start)]          # (f_score, position)
-    came_from = {}                     # tile -> tile we reached it from
-    g_score = {start: 0}               # cost from start to each tile
+    open_heap = [(0, start)]
+    came_from = {}
+    g_score = {start: 0}
 
     while open_heap:
         _, current = heapq.heappop(open_heap)
 
         if current == goal:
-            # reconstruct path by walking backwards through came_from
             path = [current]
             while current in came_from:
                 current = came_from[current]
                 path.append(current)
             path.reverse()
-            return path  # includes start and goal
+            return path
 
         for neighbor in get_neighbors(current[0], current[1]):
             tentative_g = g_score[current] + 1
@@ -181,52 +164,116 @@ def find_path(start_x, start_y, goal_x, goal_y):
                 came_from[neighbor] = current
                 heapq.heappush(open_heap, (f_score, neighbor))
 
-    return None  # no path exists
+    return None
 
 
-def heuristic(x1, y1, x2, y2):
-    return abs(x1 - x2) + abs(y1 - y2)  # Manhattan distance
+# ---------------------------------------------------------------------------
+# Persistence (Phase 4): SQLite database for saving/loading runs
+# ---------------------------------------------------------------------------
+
+DB_FILE = "deadlock.db"
 
 
-def find_path(start_x, start_y, goal_x, goal_y):
-    start = (start_x, start_y)
-    goal = (goal_x, goal_y)
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            enemies_killed INTEGER,
+            survived BOOLEAN,
+            date TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
 
-    open_heap = [(0, start)]          # (f_score, position)
-    came_from = {}                     # tile -> tile we reached it from
-    g_score = {start: 0}               # cost from start to each tile
 
-    while open_heap:
-        _, current = heapq.heappop(open_heap)
+def save_run(enemies_killed_count, survived):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    cursor.execute(
+        "INSERT INTO runs (enemies_killed, survived, date) VALUES (?, ?, ?)",
+        (enemies_killed_count, survived, timestamp)
+    )
+    conn.commit()
+    conn.close()
 
-        if current == goal:
-            # reconstruct path by walking backwards through came_from
-            path = [current]
-            while current in came_from:
-                current = came_from[current]
-                path.append(current)
-            path.reverse()
-            return path  # includes start and goal
 
-        for neighbor in get_neighbors(current[0], current[1]):
-            tentative_g = g_score[current] + 1
-            if neighbor not in g_score or tentative_g < g_score[neighbor]:
-                g_score[neighbor] = tentative_g
-                f_score = tentative_g + heuristic(neighbor[0], neighbor[1], goal_x, goal_y)
-                came_from[neighbor] = current
-                heapq.heappush(open_heap, (f_score, neighbor))
+def get_recent_runs(limit=5):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT enemies_killed, survived, date FROM runs ORDER BY id DESC LIMIT ?",
+        (limit,)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
-    return None  # no path exists
+
+init_db()
 
 
 player_x, player_y = room_center(actual_rooms[0])
 enemy_x, enemy_y = room_center(actual_rooms[-1])
+
+font = pygame.font.SysFont("consolas", 20)
+font_small = pygame.font.SysFont("consolas", 16)
+
+
+def draw_hp_bar(surface):
+    text = font_small.render(f"HP: {player_hp} / 20", True, (230, 230, 230))
+    surface.blit(text, (10, 5))
+
+
+def draw_game_over(surface):
+    overlay = pygame.Surface((1280, 640))
+    overlay.set_alpha(210)
+    overlay.fill((0, 0, 0))
+    surface.blit(overlay, (0, 0))
+
+    if won:
+        title = font.render("FLOOR CLEARED — press R for a new dungeon", True, (120, 220, 140))
+    else:
+        title = font.render("YOU DIED — press R to play again", True, (255, 90, 90))
+    surface.blit(title, (40, 40))
+
+    subtitle = font_small.render(f"Enemies killed this run: {enemies_killed}", True, (230, 230, 230))
+    surface.blit(subtitle, (40, 80))
+
+    header = font_small.render("Recent runs:", True, (200, 200, 200))
+    surface.blit(header, (40, 120))
+
+    recent = get_recent_runs(5)
+    y_offset = 150
+    for kills, survived, date in recent:
+        result_text = "Survived" if survived else "Died"
+        line = font_small.render(f"{date} — {result_text} — {kills} kills", True, (180, 180, 180))
+        surface.blit(line, (40, y_offset))
+        y_offset += 24
 
 
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        if event.type == pygame.KEYDOWN and game_over and event.key == pygame.K_r:
+            # restart: regenerate a new dungeon and reset state
+            pieces = split_recursive(Rect(0, 0, MAP_WIDTH, MAP_HEIGHT), 3)
+            actual_rooms = [rect_to_room(p) for p in pieces]
+            LEVEL_MAP = rooms_to_map(actual_rooms, MAP_WIDTH, MAP_HEIGHT)
+            player_x, player_y = room_center(actual_rooms[0])
+            enemy_x, enemy_y = room_center(actual_rooms[-1])
+            player_hp = 20
+            enemy_hp = 10
+            enemy_alive = True
+            enemies_killed = 0
+            game_over = False
+            won = False
+            run_saved = False
 
         if event.type == pygame.KEYDOWN and not game_over:
             if event.key == pygame.K_RIGHT:
@@ -236,6 +283,7 @@ while running:
                     enemy_hp -= 5
                     if enemy_hp <= 0:
                         enemy_alive = False
+                        enemies_killed += 1
                 elif not is_wall(new_x, new_y):
                     player_x = new_x
 
@@ -246,6 +294,7 @@ while running:
                     enemy_hp -= 5
                     if enemy_hp <= 0:
                         enemy_alive = False
+                        enemies_killed += 1
                 elif not is_wall(new_x, new_y):
                     player_x = new_x
 
@@ -256,6 +305,7 @@ while running:
                     enemy_hp -= 5
                     if enemy_hp <= 0:
                         enemy_alive = False
+                        enemies_killed += 1
                 elif not is_wall(new_x, new_y):
                     player_y = new_y
 
@@ -266,8 +316,14 @@ while running:
                     enemy_hp -= 5
                     if enemy_hp <= 0:
                         enemy_alive = False
+                        enemies_killed += 1
                 elif not is_wall(new_x, new_y):
                     player_y = new_y
+
+            # killing the enemy ends the run as a win
+            if not enemy_alive and not game_over:
+                game_over = True
+                won = True
 
             if enemy_alive:
                 dx = player_x - enemy_x
@@ -281,9 +337,11 @@ while running:
                     if path and len(path) > 1:
                         enemy_x, enemy_y = path[1]
 
+    # save the run exactly once, right when the game transitions to game_over
+    if game_over and not run_saved:
+        save_run(enemies_killed, survived=won)
+        run_saved = True
 
-
-              
     screen.fill((30, 30, 40))
     for grid_y, row in enumerate(LEVEL_MAP):
         for grid_x, cell in enumerate(row):
@@ -296,6 +354,11 @@ while running:
     pygame.draw.rect(screen, (80, 200, 255), (TILE_SIZE * player_x, TILE_SIZE * player_y, TILE_SIZE, TILE_SIZE))
     if enemy_alive:
         pygame.draw.rect(screen, (220, 60, 60), (TILE_SIZE * enemy_x, TILE_SIZE * enemy_y, TILE_SIZE, TILE_SIZE))
+
+    draw_hp_bar(screen)
+
+    if game_over:
+        draw_game_over(screen)
 
     pygame.display.flip()
     clock.tick(60)
