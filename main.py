@@ -7,7 +7,10 @@ import datetime
 pygame.init()
 
 
-screen = pygame.display.set_mode((1280, 640))
+SCREEN_WIDTH = 1280
+MAP_PIXEL_HEIGHT = 640
+LOG_HEIGHT = 110
+screen = pygame.display.set_mode((SCREEN_WIDTH, MAP_PIXEL_HEIGHT + LOG_HEIGHT))
 
 clock = pygame.time.Clock()
 running = True
@@ -22,6 +25,15 @@ player_hp = 20
 enemy_hp = 10
 enemy_alive = True
 enemies_killed = 0
+
+MAX_LOG_MESSAGES = 5
+message_log = []
+
+
+def add_message(text):
+    message_log.append(text)
+    if len(message_log) > MAX_LOG_MESSAGES:
+        message_log.pop(0)
 
 
 class Rect:
@@ -223,13 +235,25 @@ font = pygame.font.SysFont("consolas", 20)
 font_small = pygame.font.SysFont("consolas", 16)
 
 
+def draw_message_log(surface):
+    log_y = MAP_PIXEL_HEIGHT
+    pygame.draw.rect(surface, (15, 15, 20), (0, log_y, SCREEN_WIDTH, LOG_HEIGHT))
+    pygame.draw.line(surface, (60, 60, 70), (0, log_y), (SCREEN_WIDTH, log_y), 2)
+
+    y_offset = log_y + 8
+    for message in message_log:
+        line = font_small.render(message, True, (200, 200, 210))
+        surface.blit(line, (10, y_offset))
+        y_offset += 20
+
+
 def draw_hp_bar(surface):
     text = font_small.render(f"HP: {player_hp} / 20", True, (230, 230, 230))
     surface.blit(text, (10, 5))
 
 
 def draw_game_over(surface):
-    overlay = pygame.Surface((1280, 640))
+    overlay = pygame.Surface((SCREEN_WIDTH, MAP_PIXEL_HEIGHT + LOG_HEIGHT))
     overlay.set_alpha(210)
     overlay.fill((0, 0, 0))
     surface.blit(overlay, (0, 0))
@@ -274,68 +298,87 @@ while running:
             game_over = False
             won = False
             run_saved = False
+            message_log.clear()
+            add_message("A new dungeon appears.")
 
         if event.type == pygame.KEYDOWN and not game_over:
-            if event.key == pygame.K_RIGHT:
+            player_acted = event.key in (pygame.K_w, pygame.K_a, pygame.K_s, pygame.K_d)
+
+            if event.key == pygame.K_d:
                 new_x = player_x + 1
                 new_y = player_y
                 if enemy_alive and new_x == enemy_x and new_y == enemy_y:
                     enemy_hp -= 5
+                    add_message(f"You hit the enemy for 5. (enemy HP: {max(enemy_hp,0)})")
                     if enemy_hp <= 0:
                         enemy_alive = False
                         enemies_killed += 1
+                        add_message("You defeated the enemy!")
                 elif not is_wall(new_x, new_y):
                     player_x = new_x
+                    add_message("You moved right.")
 
-            elif event.key == pygame.K_LEFT:
+            elif event.key == pygame.K_a:
                 new_x = player_x - 1
                 new_y = player_y
                 if enemy_alive and new_x == enemy_x and new_y == enemy_y:
                     enemy_hp -= 5
+                    add_message(f"You hit the enemy for 5. (enemy HP: {max(enemy_hp,0)})")
                     if enemy_hp <= 0:
                         enemy_alive = False
                         enemies_killed += 1
+                        add_message("You defeated the enemy!")
                 elif not is_wall(new_x, new_y):
                     player_x = new_x
+                    add_message("You moved left.")
 
-            elif event.key == pygame.K_UP:
+            elif event.key == pygame.K_w:
                 new_x = player_x
                 new_y = player_y - 1
                 if enemy_alive and new_x == enemy_x and new_y == enemy_y:
                     enemy_hp -= 5
+                    add_message(f"You hit the enemy for 5. (enemy HP: {max(enemy_hp,0)})")
                     if enemy_hp <= 0:
                         enemy_alive = False
                         enemies_killed += 1
+                        add_message("You defeated the enemy!")
                 elif not is_wall(new_x, new_y):
                     player_y = new_y
+                    add_message("You moved up.")
 
-            elif event.key == pygame.K_DOWN:
+            elif event.key == pygame.K_s:
                 new_x = player_x
                 new_y = player_y + 1
                 if enemy_alive and new_x == enemy_x and new_y == enemy_y:
                     enemy_hp -= 5
+                    add_message(f"You hit the enemy for 5. (enemy HP: {max(enemy_hp,0)})")
                     if enemy_hp <= 0:
                         enemy_alive = False
                         enemies_killed += 1
+                        add_message("You defeated the enemy!")
                 elif not is_wall(new_x, new_y):
                     player_y = new_y
+                    add_message("You moved down.")
 
             # killing the enemy ends the run as a win
             if not enemy_alive and not game_over:
                 game_over = True
                 won = True
 
-            if enemy_alive:
+            # the enemy only gets a turn if the player actually did something (a real WASD press)
+            if player_acted and enemy_alive:
                 dx = player_x - enemy_x
                 dy = player_y - enemy_y
                 if abs(dx) + abs(dy) == 1:
                     player_hp -= 2
+                    add_message(f"The enemy hits you for 2. (your HP: {max(player_hp,0)})")
                     if player_hp <= 0:
                         game_over = True
                 else:
                     path = find_path(enemy_x, enemy_y, player_x, player_y)
                     if path and len(path) > 1:
                         enemy_x, enemy_y = path[1]
+                        add_message("The enemy moves closer.")
 
     # save the run exactly once, right when the game transitions to game_over
     if game_over and not run_saved:
@@ -356,6 +399,7 @@ while running:
         pygame.draw.rect(screen, (220, 60, 60), (TILE_SIZE * enemy_x, TILE_SIZE * enemy_y, TILE_SIZE, TILE_SIZE))
 
     draw_hp_bar(screen)
+    draw_message_log(screen)
 
     if game_over:
         draw_game_over(screen)
