@@ -37,10 +37,11 @@ pip install pygame
 python main.py
 \`\`\`
 
+
 ## Controls
-- Arrow keys to move
+- WASD to move
 - Walk into an enemy to attack it (bump-to-attack — takes 2 hits to kill)
-- `R` to restart with a freshly generated dungeon after death
+- Kill the enemy to clear the floor, or die trying — either way, `R` starts a new run
 
 ## Architecture
 See `DESIGN.md` for the full design doc: architecture diagram, build
