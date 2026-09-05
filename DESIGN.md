@@ -78,6 +78,13 @@ generated rooms.
 
 **Phase 4 (done):** Local persistence via SQLite (sqlite3, built into Python's standard library — no server required). init_db() creates a runs table (id, enemies_killed, survived, date) if it doesn't already exist. save_run() inserts a row when the player dies, guarded by a run_saved flag so a run is only recorded once per death, not every frame. get_recent_runs() queries the 5 most recent runs (ORDER BY id DESC LIMIT 5) and displays them on the game-over screen. Pressing R regenerates a fresh dungeon and resets state, allowing multiple runs to be recorded in one play session. This is the same INSERT/SELECT pattern Phase 5's PostgreSQL backend will use, just against a local file instead of a server.
 
+**Phase 5 (in progress):** FastAPI backend (`api.py`) exposes `POST /runs`
+(accepts a run via a Pydantic `RunSubmission` model — automatic request
+validation) and `GET /runs` (returns the most recent runs as JSON).
+Currently uses the same SQLite database as the client; the client will
+be updated to submit runs over HTTP via the `requests` library instead
+of writing to SQLite directly, making this a genuine client-server setup.
+
 ## Status log
 - [x] Phase 1 — Core loop
 - [x] Phase 2 — Procedural generation

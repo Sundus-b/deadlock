@@ -19,7 +19,7 @@ planned as the project grows.
 - Player/enemy HP, death, and a game-over state with a quick restart
 
 ## Tech stack
-Python, Pygame, SQLite (`sqlite3`, standard library)
+Python, Pygame, SQLite, FastAPI (backend API)
 
 Planned: FastAPI + PostgreSQL backend, React + TypeScript web
 leaderboard, Docker deployment — see `DESIGN.md` for the full
@@ -46,6 +46,8 @@ python main.py
 ## Architecture
 See `DESIGN.md` for the full design doc: architecture diagram, build
 phases, implementation notes per phase, and current status.
+
+
 
 ## What I learned
 - **Recursion**, building the dungeon generator (BSP): splitting a
