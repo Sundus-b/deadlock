@@ -1,8 +1,7 @@
 import pygame
 import random
 import heapq
-import sqlite3
-import datetime
+import requests
 
 pygame.init()
 
@@ -17,6 +16,7 @@ running = True
 game_over = False
 won = False  # True if the game ended by killing the enemy, False if the player died
 run_saved = False  # so we only save the run once, not every frame after death
+cached_recent_runs = []  # fetched once per game-over, not every frame
 
 
 TILE_SIZE = 32
@@ -180,52 +180,30 @@ def find_path(start_x, start_y, goal_x, goal_y):
 
 
 # ---------------------------------------------------------------------------
-# Persistence (Phase 4): SQLite database for saving/loading runs
+# Persistence (Phase 5): the game now talks to the FastAPI backend over
+# HTTP instead of writing to SQLite directly. The API (api.py) owns the
+# database; this client just sends/receives JSON.
 # ---------------------------------------------------------------------------
 
-DB_FILE = "deadlock.db"
-
-
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS runs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            enemies_killed INTEGER,
-            survived BOOLEAN,
-            date TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
+API_URL = "http://127.0.0.1:8000"
 
 
 def save_run(enemies_killed_count, survived):
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    cursor.execute(
-        "INSERT INTO runs (enemies_killed, survived, date) VALUES (?, ?, ?)",
-        (enemies_killed_count, survived, timestamp)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        requests.post(f"{API_URL}/runs", json={
+            "enemies_killed": enemies_killed_count,
+            "survived": survived
+        })
+    except requests.exceptions.ConnectionError:
+        print("Warning: couldn't reach the API, run not saved.")
 
 
 def get_recent_runs(limit=5):
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT enemies_killed, survived, date FROM runs ORDER BY id DESC LIMIT ?",
-        (limit,)
-    )
-    rows = cursor.fetchall()
-    conn.close()
-    return rows
-
-
-init_db()
+    try:
+        response = requests.get(f"{API_URL}/runs", params={"limit": limit})
+        return [(r["enemies_killed"], r["survived"], r["date"]) for r in response.json()]
+    except requests.exceptions.ConnectionError:
+        return []
 
 
 player_x, player_y = room_center(actual_rooms[0])
@@ -270,9 +248,8 @@ def draw_game_over(surface):
     header = font_small.render("Recent runs:", True, (200, 200, 200))
     surface.blit(header, (40, 120))
 
-    recent = get_recent_runs(5)
     y_offset = 150
-    for kills, survived, date in recent:
+    for kills, survived, date in cached_recent_runs:
         result_text = "Survived" if survived else "Died"
         line = font_small.render(f"{date} — {result_text} — {kills} kills", True, (180, 180, 180))
         surface.blit(line, (40, y_offset))
@@ -383,6 +360,7 @@ while running:
     # save the run exactly once, right when the game transitions to game_over
     if game_over and not run_saved:
         save_run(enemies_killed, survived=won)
+        cached_recent_runs = get_recent_runs(5)
         run_saved = True
 
     screen.fill((30, 30, 40))
