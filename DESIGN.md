@@ -85,11 +85,37 @@ Currently uses the same SQLite database as the client; the client will
 be updated to submit runs over HTTP via the `requests` library instead
 of writing to SQLite directly, making this a genuine client-server setup.
 
+**Phase 5 (done):** Built a FastAPI backend (`api.py`) exposing
+`POST /runs` (accepts a run via a Pydantic `RunSubmission` model —
+FastAPI validates the request body automatically against that schema)
+and `GET /runs` (returns the most recent runs as JSON, ordered newest
+first). The client (`main.py`) no longer touches a database directly —
+`save_run()` and `get_recent_runs()` now make HTTP calls via the
+`requests` library, with a `try/except` around each in case the API
+isn't running. The game and API are two separate processes, run in two
+terminals.
+
+Switched the database from SQLite to real PostgreSQL, connected via
+`psycopg2`. Differences from SQLite worth remembering: PostgreSQL uses
+`%s` placeholders instead of `?`, and `SERIAL PRIMARY KEY` instead of
+`AUTOINCREMENT`.
+
+**Security note:** the database password is never hardcoded in
+`api.py` or committed to Git. It's stored in a local `.env` file
+(loaded via `python-dotenv`, `os.getenv("DB_PASSWORD")`), and `.env` is
+listed in `.gitignore` so it never reaches GitHub. Hardcoding a real
+password directly in committed code is a common beginner mistake that
+exposes it to anyone who views the repository.
+
+Also fixed a performance issue during this phase: the game-over screen
+was originally calling `GET /runs` on every single rendered frame
+(~60
+
 ## Status log
 - [x] Phase 1 — Core loop
 - [x] Phase 2 — Procedural generation
 - [X] Phase 3 — Enemy AI / pathfinding
 - [X] Phase 4 — Persistence
-- [ ] Phase 5 — Backend API
+- [X] Phase 5 — Backend API
 - [ ] Phase 6 — Web frontend
 - [ ] Phase 7 — Deployment

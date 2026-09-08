@@ -19,24 +19,27 @@ planned as the project grows.
 - Player/enemy HP, death, and a game-over state with a quick restart
 
 ## Tech stack
-Python, Pygame, SQLite, FastAPI (backend API)
-
-Planned: FastAPI + PostgreSQL backend, React + TypeScript web
-leaderboard, Docker deployment — see `DESIGN.md` for the full
-architecture and build-phase breakdown.
+Python, Pygame, FastAPI, PostgreSQL, SQLite (legacy/Phase 4)
 
 ## Setup
-\`\`\`bash
+```bash
 python -m venv venv
-source venv/bin/activate      # Windows: venv\\Scripts\\activate
-pip install pygame
-\`\`\`
+source venv/bin/activate      # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-## Run
-\`\`\`bash
+## Running
+This project now has two parts that run separately:
+
+1. Start the API (Terminal 1):
+```bash
+uvicorn api:app --reload
+```
+
+2. Start the game (Terminal 2):
+```bash
 python main.py
-\`\`\`
-
+```
 
 ## Controls
 - WASD to move
