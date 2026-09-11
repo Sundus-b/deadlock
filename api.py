@@ -9,6 +9,15 @@ load_dotenv()  # reads variables from a local .env file, if present
 
 app = FastAPI()
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # the React dev server's address
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Connection details for your local PostgreSQL instance.
 # The password is read from a .env file (never committed to Git) via
 # the DB_PASSWORD variable, instead of being hardcoded here.
