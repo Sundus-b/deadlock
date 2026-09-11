@@ -95,6 +95,15 @@ first). The client (`main.py`) no longer touches a database directly —
 isn't running. The game and API are two separate processes, run in two
 terminals.
 
+**Phase 6 (done):** Built a React + TypeScript frontend (`frontend/`,
+scaffolded with Vite) showing a leaderboard. `App.tsx` uses `useState`
+to hold fetched runs and `useEffect` to fetch them once on load, calling
+the API's `GET /runs` endpoint via the browser's built-in `fetch()`.
+An `interface Run` defines the expected shape of each run, mirroring
+the Pydantic model on the backend. Required enabling CORS on the API
+(`CORSMiddleware`) so the browser would allow requests from the
+frontend's different port.
+
 Switched the database from SQLite to real PostgreSQL, connected via
 `psycopg2`. Differences from SQLite worth remembering: PostgreSQL uses
 `%s` placeholders instead of `?`, and `SERIAL PRIMARY KEY` instead of
@@ -117,5 +126,5 @@ was originally calling `GET /runs` on every single rendered frame
 - [X] Phase 3 — Enemy AI / pathfinding
 - [X] Phase 4 — Persistence
 - [X] Phase 5 — Backend API
-- [ ] Phase 6 — Web frontend
+- [X] Phase 6 — Web frontend
 - [ ] Phase 7 — Deployment
