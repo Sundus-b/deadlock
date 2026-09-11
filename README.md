@@ -1,6 +1,6 @@
 # Deadlock
 
-![gameplay screenshot](Scrnshots/dungeon.png)
+![gameplay screenshot](Scrnshots/1.png)
 
 A roguelike dungeon crawler built from scratch in Python — procedurally
 generated dungeons, grid-based combat, A* enemy pathfinding, and local
@@ -18,8 +18,19 @@ planned as the project grows.
   per run, shown on the game-over screen
 - Player/enemy HP, death, and a game-over state with a quick restart
 
+
 ## Tech stack
-Python, Pygame, FastAPI, PostgreSQL, SQLite (legacy/Phase 4)
+Python, Pygame, FastAPI, PostgreSQL, React, TypeScript
+
+## Running the full stack
+This project now has three parts, each run in its own terminal:
+
+1. API: `uvicorn api:app --reload`
+2. Game: `python main.py`
+3. Web leaderboard: `cd frontend && npm run dev` — then open the
+   printed local URL (e.g. http://localhost:5173) in a browser
+
+
 
 ## Setup
 ```bash
