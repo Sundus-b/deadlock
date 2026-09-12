@@ -21,17 +21,11 @@ app.add_middleware(
 # Connection details for your local PostgreSQL instance.
 # The password is read from a .env file (never committed to Git) via
 # the DB_PASSWORD variable, instead of being hardcoded here.
-DB_CONFIG = {
-    "host": "localhost",
-    "port": 5432,
-    "dbname": "deadlock",
-    "user": "postgres",
-    "password": os.getenv("DB_PASSWORD"),
-}
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    return psycopg2.connect(DATABASE_URL)
 
 
 def init_db():
