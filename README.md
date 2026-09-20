@@ -1,6 +1,6 @@
 # Deadlock
 
-![gameplay screenshot](Scrnshots/1.png)
+![gameplay screenshot](Scrnshots/dungeon.png)
 
 A roguelike dungeon crawler built from scratch in Python — procedurally
 generated dungeons, grid-based combat, A* enemy pathfinding, and local
@@ -84,3 +84,8 @@ phases, implementation notes per phase, and current status.
 - **Git workflow**: committing incrementally after each working piece
   (not just once at the end) makes the project's history actually show
   how it was built, not just the final result.
+
+
+  ## Live Deployment
+- API: https://deadlock-api-bbpx.onrender.com
+- Leaderboard: https://deadlock-frontend.onrender.com
