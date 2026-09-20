@@ -11,7 +11,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/runs")
+    fetch("https://deadlock-api-bbpx.onrender.com/runs")
       .then((response) => response.json())
       .then((data) => setRuns(data))
       .catch(() => setError("Couldn't reach the API. Is it running?"));

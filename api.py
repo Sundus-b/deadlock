@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import psycopg2
 import datetime
@@ -9,18 +10,16 @@ load_dotenv()  # reads variables from a local .env file, if present
 
 app = FastAPI()
 
-from fastapi.middleware.cors import CORSMiddleware
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # the React dev server's address
+    allow_origins=["*"],  # temporarily open while setting up Vercel; tighten once the real frontend URL is known
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Connection details for your local PostgreSQL instance.
-# The password is read from a .env file (never committed to Git) via
-# the DB_PASSWORD variable, instead of being hardcoded here.
+# Connection string for the database (Neon in production, or local
+# Postgres during development). Read from an environment variable —
+# never hardcoded, and never committed to Git.
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
