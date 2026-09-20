@@ -12,7 +12,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # temporarily open while setting up Vercel; tighten once the real frontend URL is known
+    allow_origins=["https://deadlock-frontend.onrender.com"],  # temporarily open while setting up Vercel; tighten once the real frontend URL is known
     allow_methods=["*"],
     allow_headers=["*"],
 )
