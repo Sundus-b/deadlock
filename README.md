@@ -9,6 +9,7 @@ deployed backend + web leaderboard.
 ## Live deployment
 - **API:** https://deadlock-api-bbpx.onrender.com
 - **Web leaderboard:** https://deadlock-frontend.onrender.com
+- **Download the game (Windows):** https://sundus-b.itch.io/deadlock
 
 Note: the API is hosted on Render's free tier, which spins down after
 15 minutes of inactivity. The first request after idling can take

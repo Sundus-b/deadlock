@@ -185,7 +185,7 @@ def find_path(start_x, start_y, goal_x, goal_y):
 # database; this client just sends/receives JSON.
 # ---------------------------------------------------------------------------
 
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://deadlock-api-bbpx.onrender.com"
 
 
 def save_run(enemies_killed_count, survived):
